@@ -191,7 +191,7 @@ require('./InputComponents.php');
                     <div class="invalid-feedback">
                          Post Code code required.
                     </div>
-                    <ul id="HiddenPostCodeValue" style="display: none;"></ul>
+                    <ul id="HiddenPostCodeValue" style="display: none;">Test to remove</ul>
                 </div> 
 
                 

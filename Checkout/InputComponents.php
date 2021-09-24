@@ -1,4 +1,6 @@
 <?php
+require('../HeaderBar/index.php');
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
 
     $CardHolderName = '   
         <div class="col-md-6 mb-3">
@@ -41,25 +43,40 @@
         </div>
     ';
 
-    var_dump($_SESSION["value"]["Checkout"]);
+
 if(!!$_SESSION["value"]["Checkout"])
 {
-    $BasketItems = join(",", $_SESSION["value"]["Checkout"]);    
-    # PUT TOGETHER FILTER OPTIONS AND CREATE SEARCH PARAMETER
+
+    $BasketCounter = explode(",",$_SESSION["value"]["Checkout"][0]);
+    
+    $VehiclesInBasket = array_count_values($BasketCounter);
+
+    # SET ARRAYS TO LOOP THROUGH
+    $VehicleArray = [];
+    $VehicleArrayTest = [];
+    foreach($VehiclesInBasket as $ARR_index => $Count)
+    {
+        # PUSH BASKET ITEMS INTO NEW ARRAY, TO QUERY DATABASE WITH
+        array_push($VehicleArray,$ARR_index);
+
+        ######################################
+        # THIS METHOD ONLY WORKS IF YOU SET THE ARRAY VARIABLE = TO SOMETHING.
+        $VehicleArrayTest[$ARR_index]['VehicleCount'] = $Count;
+
+    }
+
+    $VehiclesinBasket = implode(",", $VehicleArray);
+
     $ARR_Data['sql'] = '
         SELECT * FROM vehiclemarket
-        WHERE Vehicle_ID IN (' . $BasketItems . ')
+        WHERE Vehicle_ID IN (' . $VehiclesinBasket . ')
     
     ';
-
-
-    $ARR_Data['ClassSwitchMethod'] = new ClassSwitch();
+   
     # CALL NEW INSTANCE OF DB CLASS AND VALIDATE 
     $ARR_Data['DatabaseMethods'] = new DBMethods();
-
-
-    $ARR_Data['LoadDBVehicles'] = $ARR_Data['DatabaseMethods']->GrabMarketPlaceVehicles($conn, $ARR_Data['sql']);
-
+    $ARR_Data['ClassSwitchMethod'] = new ClassSwitch();
+    $ARR_Data['LoadDBVehicles'] = $ARR_Data['DatabaseMethods'] -> GrabMarketPlaceVehicles($conn, $ARR_Data['sql']);
 
     # COLLECT THE ARRAY OF BASKET ITEMS AND STORE IN STATIC ARRAY TO PASS TO JS 
     $ARR_Data['TotalPrice'] = [];
@@ -80,6 +97,7 @@ if(!!$_SESSION["value"]["Checkout"])
             $ARR_Data['VehicleName'] = $row['VehicleMake_Name'];
             $ARR_Data['VehicleModel'] = $row['VehicleMake_Model'];
             $ARR_Data['VehicleDescription'] = $row['Vehicle_Description'];
+            $ARR_Data['VehicleID'] = $row['Vehicle_ID'];
             
             # FORMAT
             $ARR_Data['VehicleColor'] = $ARR_Data['ClassSwitchMethod'] -> CarColorSwitch($ARR_Data['VehicleColor']);
@@ -97,19 +115,21 @@ if(!!$_SESSION["value"]["Checkout"])
             {
                     $ARR_Data['DisplayVehicleDescription'] = $ARR_Data['VehicleDescription'];
             }
-            
-            
+            # THIS SHIT RIGHT HERE.   # WE CAN USE THE VEHICLE ID/ VEHICLE COUNT TO REPLACE THE INDEXED ARRAY VALUE ABOVE. BECAUSE IT SHOULD BE THE SAME
+            $TotalVehiclePrice =  $VehicleArrayTest[$ARR_Data['VehicleID']]['VehicleCount'] * $ARR_Data['VehiclePrice']; 
+
             $ARR_Data['DisplayCheckoutItems'] .= '
                 <li class="list-group-item d-flex justify-content-between lh-condensed">
                     <div>
                         <h6 class="my-0">' . $ARR_Data['VehicleModel'] . ' </h6>
                         <small class="text-muted">' . $ARR_Data['DisplayVehicleDescription'] . '</small>
                     </div>
-                    <span class="text-muted">£' . $ARR_Data['VehiclePrice'] . '</span>
+                    <span class="text-muted">£' . $TotalVehiclePrice . '</span>
+                     <small class="text-muted"> Quantity' .  $VehicleArrayTest[$ARR_Data['VehicleID']]['VehicleCount'] . '</small>
                 </li>
             ';
 
-            array_push($ARR_Data['TotalPrice'], $ARR_Data['VehiclePrice']);
+            array_push($ARR_Data['TotalPrice'], $TotalVehiclePrice);
         }
     }
 
